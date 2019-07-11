@@ -10,12 +10,38 @@ areas.sort()
 
 cur_area_typing = ""
 
+def first(c,l):
+    for x in l:
+        if c(x):
+            return x
+    return None
+
 def type_area(key,w):
+    global cur_area_typing
     k = key.keysym.upper()
+    w.state(["!readonly"])
     if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
         new_typing = cur_area_typing + k
-        # YOU ARE HERE. FILTER/FIRST THE AREAS LIST
-        print(k)
+        match = first(lambda a: a.startswith(new_typing), areas)
+        w.delete(0,100)
+        if match != None:
+            print(w.selection_range.__doc__)
+            cur_area_typing = new_typing
+
+            w.insert(0,new_typing)
+           
+            area_insert_start = len(new_typing)
+            area_insert = match[len(new_typing):]
+            w.insert(area_insert_start, area_insert)
+            w.selection_range(area_insert_start, area_insert_start + len(area_insert))
+        else:
+            w.insert(0,cur_area_typing)
+    elif k == "BACKSPACE":
+        cur_area_typing = cur_area_typing[:-1]
+        w.delete(len(cur_area_typing) - 1,100)
+
+    w.state(["readonly"])
+            
 
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
@@ -24,9 +50,11 @@ class LaborSheetForm():
         Label(master, text="Credit").grid(row=0, column=2, sticky=W)
         Label(master, text="Amount").grid(row=0, column=3, sticky=W)
         for i in range(num_rows):
-            self.area = Entry(master, text="")
+            self.area = Entry(master)
             self.area.state(["readonly"])
-            self.area.bind('<KeyPress>', lambda k, x=self.area: type_area(k,x))
+            #self.area.unbind_class("Entry", "<KeyPress>")
+            self.area.bind('<KeyPress>', lambda k, x=self.area: type_area(k,x), "")
+            self.area.bind('<KeyRelease>', lambda k, x=self.area: x.delete(len(cur_area_typing),1), "")
             self.area.grid(row=i+1, column=0, sticky=W)
             self.debit = Entry(master, width=8)
             self.debit.grid(row=i+1, column=1, sticky=W)

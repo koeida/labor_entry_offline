@@ -1,1 +1,10 @@
 Offline labor sheet inputter
+
+TODO:
+* Get areas from labordb
+* Menu:
+** Load from folder
+** Maybe default to most recent folder
+* Sheet scroller: 
+** Saves when you scroll
+* Save changes as you go: One file per sheet, batches of sheets are just sheets in a folder.
