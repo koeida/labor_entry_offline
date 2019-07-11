@@ -28,17 +28,25 @@ def update_area_box(box, typing, match):
         box.selection_range(area_insert_start, area_insert_start + len(area_insert))
     box.state(["readonly"])
 
+def get_match():
+    matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
+    if len(cur_area_typing) > 0:
+        return matches[cur_area_index]
+    else:
+        return None
+
 def type_area(key,w):
     global cur_area_typing, cur_area_index
     k = key.keysym.upper()
+    match = None
     if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
         cur_area_index = 0
         new_typing = cur_area_typing + k
         matches = list(filter(lambda a: a.startswith(new_typing), areas))
         if len(matches) != 0:
-            match = matches[0]
             cur_area_typing = new_typing
-            update_area_box(w, new_typing, match)
+
+        match = get_match()
     elif k == "BACKSPACE":
         cur_area_typing = cur_area_typing[:-1]
         if len(cur_area_typing) > 0:
@@ -46,14 +54,16 @@ def type_area(key,w):
             match = matches[cur_area_index]
         else:
             cur_area_index = 0
-            match = None
         update_area_box(w, cur_area_typing, match)
     elif k == "DOWN":
         matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
-        if len(mactches) > 1 and cur_area_index < len(matches):
+        if len(matches) > 1 and cur_area_index < len(matches):
             cur_area_index += 1
+            match = matches[cur_area_index]
+    else:
+        match = get_match()
 
-        print(k)
+    update_area_box(w, cur_area_typing, match)
 
             
 
