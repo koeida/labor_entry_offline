@@ -9,6 +9,7 @@ areas = ["DAIRY", "QUOTA", "GDN", "TOFU"]
 areas.sort()
 
 cur_area_typing = ""
+cur_area_index = 0
 
 def first(c,l):
     for x in l:
@@ -16,31 +17,44 @@ def first(c,l):
             return x
     return None
 
-def type_area(key,w):
-    global cur_area_typing
-    k = key.keysym.upper()
-    w.state(["!readonly"])
-    if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-        new_typing = cur_area_typing + k
-        match = first(lambda a: a.startswith(new_typing), areas)
-        w.delete(0,100)
-        if match != None:
-            print(w.selection_range.__doc__)
-            cur_area_typing = new_typing
+def update_area_box(box, typing, match):
+    box.state(["!readonly"])
+    box.delete(0,100)
+    if match != None:
+        box.insert(0,typing)
+        area_insert_start = len(typing)
+        area_insert = match[len(typing):]
+        box.insert(area_insert_start, area_insert)
+        box.selection_range(area_insert_start, area_insert_start + len(area_insert))
+    box.state(["readonly"])
 
-            w.insert(0,new_typing)
-           
-            area_insert_start = len(new_typing)
-            area_insert = match[len(new_typing):]
-            w.insert(area_insert_start, area_insert)
-            w.selection_range(area_insert_start, area_insert_start + len(area_insert))
-        else:
-            w.insert(0,cur_area_typing)
+def type_area(key,w):
+    global cur_area_typing, cur_area_index
+    k = key.keysym.upper()
+    if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        cur_area_index = 0
+        new_typing = cur_area_typing + k
+        matches = list(filter(lambda a: a.startswith(new_typing), areas))
+        if len(matches) != 0:
+            match = matches[0]
+            cur_area_typing = new_typing
+            update_area_box(w, new_typing, match)
     elif k == "BACKSPACE":
         cur_area_typing = cur_area_typing[:-1]
-        w.delete(len(cur_area_typing) - 1,100)
+        if len(cur_area_typing) > 0:
+            matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
+            match = matches[cur_area_index]
+        else:
+            cur_area_index = 0
+            match = None
+        update_area_box(w, cur_area_typing, match)
+    elif k == "DOWN":
+        matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
+        if len(mactches) > 1 and cur_area_index < len(matches):
+            cur_area_index += 1
 
-    w.state(["readonly"])
+        print(k)
+
             
 
 class LaborSheetForm():
