@@ -65,17 +65,13 @@ def area_input(k, cur_index, cur_typing):
 
 def type_area(key,w):
     global cur_area_typing, cur_area_index
+
     k = key.keysym.upper()
     k = " " if k == "SPACE" else k
-
-    new_index, new_typing = area_input(k, cur_area_index,  cur_area_typing)
-
-    cur_area_typing = new_typing
-    cur_area_index = new_index
+    cur_area_typing, cur_area_index = area_input(k, cur_area_index,  cur_area_typing)
     match = get_match(cur_area_typing, cur_area_index)
-    update_area_box(w, cur_area_typing, match)
 
-            
+    update_area_box(w, cur_area_typing, match)
 
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
