@@ -5,17 +5,11 @@ from collections import namedtuple
 LaborSheetRow = namedtuple("LaborSheetRow", "area debit credit amount")
 
 names = ["Keegan", "Adder", "Megan", "Saoirse", "Stephan", "Brittany"]
-areas = ["DAIRY", "QUOTA", "GDN", "TOFU"]
+areas = ["DAIRY", "QUOTA", "GDN", "TOFU", "TOFU BOD"]
 areas.sort()
 
 cur_area_typing = ""
 cur_area_index = 0
-
-def first(c,l):
-    for x in l:
-        if c(x):
-            return x
-    return None
 
 def update_area_box(box, typing, match):
     box.state(["!readonly"])
@@ -28,41 +22,57 @@ def update_area_box(box, typing, match):
         box.selection_range(area_insert_start, area_insert_start + len(area_insert))
     box.state(["readonly"])
 
-def get_match():
-    matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
-    if len(cur_area_typing) > 0:
-        return matches[cur_area_index]
+def get_match(t, cur_index):
+    matches = get_matches(t) 
+    if len(t) > 0 and matches != []:
+        return matches[cur_index]
     else:
         return None
+
+def get_matches(t):
+    if len(t) == 0:
+        return []
+    else:
+        matches = list(filter(lambda a: a.startswith(t), areas))
+        return matches 
+
+
+def area_input(k, cur_index, cur_typing):
+    def alpha(cur_index, cur_typing, k=k):
+        new_typing = cur_typing + k
+        matches = get_matches(new_typing)
+        if len(matches) == 0:
+            new_typing = cur_typing
+        return (cur_index, new_typing)
+    def backspace(cur_index, cur_typing):
+        new_typing = cur_typing[:-1]
+        new_index = 0 if len(new_typing) == 0 else cur_index
+        return (new_index, new_typing)
+    def down(cur_index, cur_typing):
+        matches = get_matches(cur_typing)
+        valid_index = len(matches) > 1 and cur_index < (len(matches) - 1)
+        new_index = cur_index + 1 if valid_index else cur_index
+        return (new_index, cur_typing)
+
+    if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ ":
+        return alpha(cur_index, cur_typing)
+    elif k == "BACKSPACE":
+        return backspace(cur_index, cur_typing)
+    elif k == "DOWN":
+        return down(cur_index, cur_typing)
+    else:
+        return (cur_index, cur_typing)
 
 def type_area(key,w):
     global cur_area_typing, cur_area_index
     k = key.keysym.upper()
-    match = None
-    if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-        cur_area_index = 0
-        new_typing = cur_area_typing + k
-        matches = list(filter(lambda a: a.startswith(new_typing), areas))
-        if len(matches) != 0:
-            cur_area_typing = new_typing
+    k = " " if k == "SPACE" else k
 
-        match = get_match()
-    elif k == "BACKSPACE":
-        cur_area_typing = cur_area_typing[:-1]
-        if len(cur_area_typing) > 0:
-            matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
-            match = matches[cur_area_index]
-        else:
-            cur_area_index = 0
-        update_area_box(w, cur_area_typing, match)
-    elif k == "DOWN":
-        matches = list(filter(lambda a: a.startswith(cur_area_typing), areas))
-        if len(matches) > 1 and cur_area_index < len(matches):
-            cur_area_index += 1
-            match = matches[cur_area_index]
-    else:
-        match = get_match()
+    new_index, new_typing = area_input(k, cur_area_index,  cur_area_typing)
 
+    cur_area_typing = new_typing
+    cur_area_index = new_index
+    match = get_match(cur_area_typing, cur_area_index)
     update_area_box(w, cur_area_typing, match)
 
             
