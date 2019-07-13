@@ -47,16 +47,11 @@ def area_input(k, cur_index, cur_typing):
         new_typing = cur_typing[:-1]
         new_index = 0 if len(new_typing) == 0 else cur_index
         return (new_index, new_typing)
-    def down(cur_index, cur_typing):
+    def downup(cur_index, cur_typing, d):
         matches = get_matches(cur_typing)
-        valid_index = len(matches) > 1 and cur_index < (len(matches) - 1)
-        new_index = cur_index + 1 if valid_index else cur_index
-        return (new_index, cur_typing)
-    def up(cur_index, cur_typing):
-        matches = get_matches(cur_typing)
-        valid_index = len(matches) > cur_index and matches != [] 
-        new_index = cur_index - 1 if valid_index else cur_index
-        print(new_index)
+        imod = cur_index + d 
+        valid_index = imod < len(matches) and imod >= 0 and matches != [] 
+        new_index = imod if valid_index else cur_index
         return (new_index, cur_typing)
 
     if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ ":
@@ -64,9 +59,9 @@ def area_input(k, cur_index, cur_typing):
     elif k == "BACKSPACE":
         return backspace(cur_index, cur_typing)
     elif k == "DOWN":
-        return down(cur_index, cur_typing)
+        return downup(cur_index, cur_typing, 1)
     elif k == "UP":
-        return up(cur_index, cur_typing)
+        return downup(cur_index, cur_typing, -1)
     else:
         return (cur_index, cur_typing)
 
