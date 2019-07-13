@@ -40,9 +40,8 @@ def area_input(k, cur_index, cur_typing):
     def alpha(cur_index, cur_typing, k=k):
         new_typing = cur_typing + k
         matches = get_matches(new_typing)
-        if len(matches) == 0:
-            new_typing = cur_typing
-        return (cur_index, new_typing)
+        typing = cur_typing if len(matches) == 0 else new_typing
+        return (cur_index, typing)
     def backspace(cur_index, cur_typing):
         new_typing = cur_typing[:-1]
         new_index = 0 if len(new_typing) == 0 else cur_index
@@ -85,7 +84,6 @@ class LaborSheetForm():
             self.area = Entry(master)
             self.area.state(["readonly"])
             self.area.bind('<KeyPress>', lambda k, x=self.area: type_area(k,x), "")
-            #self.area.bind('<KeyRelease>', lambda k, x=self.area: x.delete(len(cur_area_typing),1), "")
             self.area.grid(row=i+1, column=0, sticky=W)
             self.debit = Entry(master, width=8)
             self.debit.grid(row=i+1, column=1, sticky=W)
