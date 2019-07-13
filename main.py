@@ -22,7 +22,7 @@ def update_area_box(box, typing, match):
         box.selection_range(area_insert_start, area_insert_start + len(area_insert))
     box.state(["readonly"])
 
-def get_match(t, cur_index):
+def get_match(cur_index, t):
     matches = get_matches(t) 
     if len(t) > 0 and matches != []:
         return matches[cur_index]
@@ -35,7 +35,6 @@ def get_matches(t):
     else:
         matches = list(filter(lambda a: a.startswith(t), areas))
         return matches 
-
 
 def area_input(k, cur_index, cur_typing):
     def alpha(cur_index, cur_typing, k=k):
@@ -53,6 +52,12 @@ def area_input(k, cur_index, cur_typing):
         valid_index = len(matches) > 1 and cur_index < (len(matches) - 1)
         new_index = cur_index + 1 if valid_index else cur_index
         return (new_index, cur_typing)
+    def up(cur_index, cur_typing):
+        matches = get_matches(cur_typing)
+        valid_index = len(matches) > cur_index and matches != [] 
+        new_index = cur_index - 1 if valid_index else cur_index
+        print(new_index)
+        return (new_index, cur_typing)
 
     if k in "ABCDEFGHIJKLMNOPQRSTUVWXYZ ":
         return alpha(cur_index, cur_typing)
@@ -60,6 +65,8 @@ def area_input(k, cur_index, cur_typing):
         return backspace(cur_index, cur_typing)
     elif k == "DOWN":
         return down(cur_index, cur_typing)
+    elif k == "UP":
+        return up(cur_index, cur_typing)
     else:
         return (cur_index, cur_typing)
 
@@ -68,8 +75,8 @@ def type_area(key,w):
 
     k = key.keysym.upper()
     k = " " if k == "SPACE" else k
-    cur_area_typing, cur_area_index = area_input(k, cur_area_index,  cur_area_typing)
-    match = get_match(cur_area_typing, cur_area_index)
+    cur_area_index, cur_area_typing = area_input(k, cur_area_index,  cur_area_typing)
+    match = get_match(cur_area_index, cur_area_typing)
 
     update_area_box(w, cur_area_typing, match)
 
@@ -82,9 +89,8 @@ class LaborSheetForm():
         for i in range(num_rows):
             self.area = Entry(master)
             self.area.state(["readonly"])
-            #self.area.unbind_class("Entry", "<KeyPress>")
             self.area.bind('<KeyPress>', lambda k, x=self.area: type_area(k,x), "")
-            self.area.bind('<KeyRelease>', lambda k, x=self.area: x.delete(len(cur_area_typing),1), "")
+            #self.area.bind('<KeyRelease>', lambda k, x=self.area: x.delete(len(cur_area_typing),1), "")
             self.area.grid(row=i+1, column=0, sticky=W)
             self.debit = Entry(master, width=8)
             self.debit.grid(row=i+1, column=1, sticky=W)
