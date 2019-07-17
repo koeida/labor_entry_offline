@@ -19,13 +19,13 @@ CUR_WEEK = "test"
 cur_debit_typing = ""
 cur_debit_index = 0
 
-def update_area_box(box, typing, match):
+def update_area_box(box, match):
     box.state(["!readonly"])
     box.delete(0,100)
     if match != None:
-        box.insert(0,typing)
-        area_insert_start = len(typing)
-        area_insert = match[len(typing):]
+        box.insert(0,box.cur_typing)
+        area_insert_start = len(box.cur_typing)
+        area_insert = match[len(box.cur_typing):]
         box.insert(area_insert_start, area_insert)
         box.selection_range(area_insert_start, area_insert_start + len(area_insert))
     box.state(["readonly"])
@@ -33,6 +33,7 @@ def update_area_box(box, typing, match):
 def get_match(cur_index, t):
     matches = get_matches(t) 
     if len(t) > 0 and matches != []:
+        print("ci: %d, t: %s, matches: %s" % (cur_index, t, matches))
         return matches[cur_index]
     else:
         return None
@@ -73,26 +74,18 @@ def area_input(k, cur_index, cur_typing):
         return (cur_index, cur_typing)
 
 def type_area(key,w):
-    global cur_debit_typing, cur_debit_index
-
     k = key.keysym.upper()
     k = " " if k == "SPACE" else k
-    cur_debit_index, cur_debit_typing = area_input(k, cur_debit_index,  cur_debit_typing)
-    match = get_match(cur_debit_index, cur_debit_typing)
+    w.cur_index, w.cur_typing = area_input(k, w.cur_index,  w.cur_typing)
+    match = get_match(w.cur_index, w.cur_typing)
 
-    update_area_box(w, cur_debit_typing, match)
-
-def area_get_focus(event):
-    #set cur_index to end of area name
-    #set cur_typing to entire text
-    pass
+    update_area_box(w, match)
 
 def area_lose_focus(event):
-    global cur_debit_index, cur_debit_typing
     event.widget.select_clear()
-    cur_debit_index = 0
-    cur_debit_typing = ""
-
+    area_name = event.widget.get()
+    event.widget.cur_typing = area_name
+    event.widget.cur_index = 0
 
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
@@ -106,8 +99,9 @@ class LaborSheetForm():
             debit.state(["readonly"])
             debit.bind('<KeyPress>', lambda k, x=debit: type_area(k,x), "")
             debit.bind('<FocusOut>', area_lose_focus, "")
-            debit.bind('<FocusIn>', area_get_focus, "")
             debit.grid(row=i+1, column=0, sticky=W, padx=padding, pady=padding)
+            debit.cur_index = 0
+            debit.cur_typing = ""
             credit = Entry(master, width=8, state=DISABLED)
             credit.grid(row=i+1, column=1, sticky=W, padx=padding, pady=padding)
             amount = Entry(master, width=8, state=DISABLED)
