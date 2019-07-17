@@ -100,6 +100,7 @@ def area_lose_focus(event):
     event.widget.cur_typing = area_name
     event.widget.cur_index = 0
     validate_sheet(pwd, areas)
+    save(pwd.rows)
 
 def get_row(r):
     debit = r[0].get()
@@ -119,26 +120,25 @@ def to_csv(rows):
     return csvrows
 
 def validate_sheet(sheet, areas):
+    def mark_entry_invalid(e):
+        e["foreground"] = RED 
+        e.state(["!readonly"])
+        e.delete(0,100)
+        e.insert(0,"***INVALID***")
+        e.state(["readonly"])
+
     rows = filter(lambda r: get_row(r) != ("", "", ""), sheet.rows)
     success = True
     for r in rows:
         debit, credit, amount = (r[0], r[1], r[2])
         debit["foreground"] = BLACK
         if debit.get() not in areas:
-            debit["foreground"] = RED 
-            debit.state(["!readonly"])
-            debit.delete(0,100)
-            debit.insert(0,"***INVALID***")
-            debit.state(["readonly"])
+            mark_entry_invalid(debit)
             success = False
 
         credit["foreground"] = BLACK
         if credit.get() not in areas:
-            credit["foreground"] = RED 
-            credit.state(["!readonly"])
-            credit.delete(0,100)
-            credit.insert(0,"***INVALID***")
-            credit.state(["readonly"])
+            mark_entry_invalid(credit)
             success = False
 
         amount["foreground"] = BLACK 
@@ -156,6 +156,25 @@ def area_get_focus(e):
 
 def amount_get_focus(e):
     e.widget["foreground"] = BLACK
+
+def amount_lose_focus(e):
+    validate_sheet(pwd, areas)
+    save(pwd.rows)
+
+def save(rows):
+    # Create folders if necessary based on week name
+    if "weeks" not in get_dirs("."):
+        os.mkdir("weeks")
+
+    path = "./weeks/"
+    if CUR_WEEK not in get_dirs(path):
+        os.mkdir(path + CUR_WEEK) 
+
+    # Write the labor sheet to file
+    csv = to_csv(rows)
+    file_name = cur_member_label["text"].strip()
+    with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
+        print(csv, file=f)
 
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
@@ -184,28 +203,10 @@ class LaborSheetForm():
 
             amount = Entry(master, width=8, state=DISABLED)
             amount.grid(row=i+1, column=2, sticky=W, padx=padding, pady=padding)
-            amount.bind('<FocusOut>', lambda x: validate_sheet(pwd, areas))
+            amount.bind('<FocusOut>', amount_lose_focus)
             amount.bind('<FocusIn>', amount_get_focus, "")
             self.rows.append((debit,credit,amount))
 
-    def save(self):
-        if not validate_sheet(self, areas):
-            showerror(message="Unable to save sheet! Please fix errors.")
-            return
-
-        # Create folders if necessary based on week name
-        if "weeks" not in get_dirs("."):
-            os.mkdir("weeks")
-
-        path = "./weeks/"
-        if CUR_WEEK not in get_dirs(path):
-            os.mkdir(path + CUR_WEEK) 
-
-        # Write the labor sheet to file
-        csv = to_csv(self.rows)
-        file_name = cur_member_label["text"].strip()
-        with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
-            print(csv, file=f)
 
 class MemberDialog(Dialog):
     def __init__(self, master):
@@ -255,7 +256,7 @@ fileBtn = Button(mbar, text="New Sheet", underline=0)
 fileBtn.bind("<ButtonPress>", lambda x: MemberDialog(root))
 fileBtn.pack(side=LEFT)
 saveBtn = Button(mbar, text="Save Sheet", underline=0)
-saveBtn.bind("<ButtonPress>", lambda x: pwd.save())
+saveBtn.bind("<ButtonPress>", lambda x: save(pwd.rows))
 saveBtn.pack(side=LEFT)
 
 top_frame.pack()
