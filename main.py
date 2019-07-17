@@ -116,13 +116,27 @@ class LaborSheetForm():
     def save(self):
         def get_row(r):
             debit = r[0].get()
-            credit = r[1].get() # wrong needs to be an entry field
+            credit = r[1].get() 
             amount = r[2].get()
 
             return (debit, credit, amount)
-            
-        sheet_rows = [LaborSheetRow(*get_row(r)) for r in self.rows if get_row(r) != ("","","")]
-        sheet = LaborSheet(cur_member_label["text"].strip(), sheet_rows)
+        def valid_row(debit, credit, amount, areas):
+            valid_amount = False
+            try:
+                float(amount)
+                valid_amount = True
+            except:
+                pass
+
+            return (debit in areas) and (credit in areas) and valid_amount 
+
+        csvrows = map(get_row, self.rows)
+        csvrows = filter(lambda r: valid_row(*r, areas), csvrows)
+        csvrows = map(lambda r: ",".join(r), csvrows)
+        csvrows = "\n".join(csvrows)
+
+        #sheet_rows = [LaborSheetRow(*get_row(r)) for r in self.rows if get_row(r) != ("","","")]
+        #sheet = LaborSheet(cur_member_label["text"].strip(), sheet_rows)
 
 class MemberDialog(Dialog):
     def __init__(self, master):
