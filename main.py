@@ -4,9 +4,8 @@ from tkinter.ttk import *
 from collections import namedtuple
 
 import tkinter as tk
+import os
 
-LaborSheetRow = namedtuple("LaborSheetRow", "debit credit amount")
-LaborSheet = namedtuple("LaborSheet", "name rows")
 
 names = ["Keegan", "Adder", "Megan", "Saoirse", "Stephan", "Brittany"]
 names.sort()
@@ -16,8 +15,20 @@ areas.sort()
 MEMBER_WIDTH = 40
 CUR_WEEK = "test"
 
-cur_debit_typing = ""
-cur_debit_index = 0
+def get_dirs(path):
+    dirs = []
+    with os.scandir(path) as it:
+        dirs = filter(lambda i: i.is_dir(), it)
+        dirs = map(lambda i: i.name, dirs)
+        dirs = list(dirs)
+    return dirs
+
+def valid_type(type_func, v):
+    try:
+        type_func(v)
+        return True
+    except:
+        return False
 
 def update_area_box(box, match):
     box.state(["!readonly"])
@@ -33,7 +44,6 @@ def update_area_box(box, match):
 def get_match(cur_index, t):
     matches = get_matches(t) 
     if len(t) > 0 and matches != []:
-        print("ci: %d, t: %s, matches: %s" % (cur_index, t, matches))
         return matches[cur_index]
     else:
         return None
@@ -114,23 +124,31 @@ class LaborSheetForm():
             amount = r[2].get()
 
             return (debit, credit, amount)
+
         def valid_row(debit, credit, amount, areas):
-            valid_amount = False
-            try:
-                float(amount)
-                valid_amount = True
-            except:
-                pass
+            return (debit in areas) and (credit in areas) and valid_type(float,amount) 
 
-            return (debit in areas) and (credit in areas) and valid_amount 
+        def to_csv(rows):
+            csvrows = map(get_row, self.rows)
+            csvrows = filter(lambda r: valid_row(*r, areas), csvrows)
+            csvrows = map(lambda r: ",".join(r), csvrows)
+            csvrows = "\n".join(csvrows)
+            return csvrows
 
-        csvrows = map(get_row, self.rows)
-        csvrows = filter(lambda r: valid_row(*r, areas), csvrows)
-        csvrows = map(lambda r: ",".join(r), csvrows)
-        csvrows = "\n".join(csvrows)
+        csv = to_csv(self.rows)
+        file_name = cur_member_label["text"].strip()
+        print(file_name)
 
-        #sheet_rows = [LaborSheetRow(*get_row(r)) for r in self.rows if get_row(r) != ("","","")]
-        #sheet = LaborSheet(cur_member_label["text"].strip(), sheet_rows)
+        # Create folders if necessary based on week name
+        if "weeks" not in get_dirs("."):
+            os.mkdir("weeks")
+
+        path = "./weeks/"
+        if CUR_WEEK not in get_dirs(path):
+            os.mkdir(path + CUR_WEEK) 
+
+        with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
+            print(csv, file=f)
 
 class MemberDialog(Dialog):
     def __init__(self, master):
