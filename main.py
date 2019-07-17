@@ -176,6 +176,62 @@ def save(rows):
     with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
         print(csv, file=f)
 
+def get_next_sheet(cur_name, dirmod):
+    path = "./weeks/" + CUR_WEEK
+
+    # Get all sheets in current week
+    sheet_files = os.listdir(path)
+    sheet_files = filter(lambda f: f.endswith(".csv"), sheet_files)
+    sheet_files = list(sheet_files)
+    sheet_files.sort()
+
+    # Calculate next index based on dirmod
+    cur_index = sheet_files.index(cur_name + ".csv")
+    next_index = cur_index + dirmod 
+    next_index = next_index if next_index >= 0 and next_index < len(sheet_files) else cur_index
+
+    return sheet_files[next_index]
+
+def move_sheet(cur_name, dirmod):
+    save(pwd.rows)
+    get_next_sheet(cur_index, dirmod)
+
+def load_sheet(fname):
+    path = "./weeks/" + CUR_WEEK 
+    lines = open(path + ("/%s.csv" % fname)).readlines()
+    lines = map(lambda l: l.strip().split(","), lines)
+    lines = list(lines)
+    return (fname, lines)
+
+def initialize_form(member):
+    for r in pwd.rows:
+        for element in r:
+            element["state"] = ACTIVE
+        r[0]["state"] = "readonly"
+        r[1]["state"] = "readonly"
+    cur_member_label["width"] = 0
+    cur_member_label["text"] = member
+
+
+def display_sheet(member, rows):
+    initialize_form(member)
+    for i in range(len(rows)):
+        cur_form_row = pwd.rows[i]
+        debit, credit, amount = rows[i]
+        
+        cur_form_row[0]["state"] = "!readonly"
+        cur_form_row[1]["state"] = "!readonly"
+
+        cur_form_row[0].delete(0,1000)
+        cur_form_row[0].insert(0,debit)
+        cur_form_row[1].delete(0,1000)
+        cur_form_row[1].insert(0,credit)
+        cur_form_row[2].delete(0,1000)
+        cur_form_row[2].insert(0,amount)
+
+        cur_form_row[0]["state"] = "readonly"
+        cur_form_row[1]["state"] = "readonly"
+
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
         Label(master, text="Debit").grid(row=0, column=0, sticky=W)
@@ -206,7 +262,6 @@ class LaborSheetForm():
             amount.bind('<FocusOut>', amount_lose_focus)
             amount.bind('<FocusIn>', amount_get_focus, "")
             self.rows.append((debit,credit,amount))
-
 
 class MemberDialog(Dialog):
     def __init__(self, master):
@@ -262,4 +317,6 @@ saveBtn.pack(side=LEFT)
 top_frame.pack()
 sheet_frame.pack()
 
+member, rows = load_sheet("Adder")
+display_sheet(member, rows)
 root.mainloop()
