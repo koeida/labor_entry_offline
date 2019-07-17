@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter.commondialog import Dialog
 from tkinter.ttk import *
+from tkinter.messagebox import showerror
 from collections import namedtuple
 
 import tkinter as tk
@@ -14,6 +15,8 @@ areas.sort()
 
 MEMBER_WIDTH = 40
 CUR_WEEK = "test"
+BLACK = "#000000"
+RED = "#ff0000"
 
 def get_dirs(path):
     dirs = []
@@ -96,6 +99,63 @@ def area_lose_focus(event):
     area_name = event.widget.get()
     event.widget.cur_typing = area_name
     event.widget.cur_index = 0
+    validate_sheet(pwd, areas)
+
+def get_row(r):
+    debit = r[0].get()
+    credit = r[1].get() 
+    amount = r[2].get()
+
+    return (debit, credit, amount)
+
+def valid_row(debit, credit, amount, areas):
+    return (debit in areas) and (credit in areas) and valid_type(float,amount) 
+
+def to_csv(rows):
+    csvrows = map(get_row, rows)
+    csvrows = filter(lambda r: valid_row(*r, areas), csvrows)
+    csvrows = map(lambda r: ",".join(r), csvrows)
+    csvrows = "\n".join(csvrows)
+    return csvrows
+
+def validate_sheet(sheet, areas):
+    rows = filter(lambda r: get_row(r) != ("", "", ""), sheet.rows)
+    success = True
+    for r in rows:
+        debit, credit, amount = (r[0], r[1], r[2])
+        debit["foreground"] = BLACK
+        if debit.get() not in areas:
+            debit["foreground"] = RED 
+            debit.state(["!readonly"])
+            debit.delete(0,100)
+            debit.insert(0,"***INVALID***")
+            debit.state(["readonly"])
+            success = False
+
+        credit["foreground"] = BLACK
+        if credit.get() not in areas:
+            credit["foreground"] = RED 
+            credit.state(["!readonly"])
+            credit.delete(0,100)
+            credit.insert(0,"***INVALID***")
+            credit.state(["readonly"])
+            success = False
+
+        amount["foreground"] = BLACK 
+        if not valid_type(float,amount.get()):
+            amount["foreground"] = RED 
+            success = False
+    return success
+
+def area_get_focus(e):
+    e.widget["foreground"] = BLACK
+    e.widget.state(["!readonly"])
+    e.widget.delete(0,100)
+    e.widget.insert(0,e.widget.cur_typing)
+    e.widget.state(["readonly"])
+
+def amount_get_focus(e):
+    e.widget["foreground"] = BLACK
 
 class LaborSheetForm():
     def __init__(self, master, num_rows=10):
@@ -108,36 +168,30 @@ class LaborSheetForm():
             debit = Entry(master, state=DISABLED)
             debit.state(["readonly"])
             debit.bind('<KeyPress>', lambda k, x=debit: type_area(k,x), "")
+            debit.bind('<FocusIn>', area_get_focus, "")
             debit.bind('<FocusOut>', area_lose_focus, "")
             debit.grid(row=i+1, column=0, sticky=W, padx=padding, pady=padding)
             debit.cur_index = 0
             debit.cur_typing = ""
-            credit = Entry(master, width=8, state=DISABLED)
+
+            credit = Entry(master, state=DISABLED)
+            credit.bind('<KeyPress>', lambda k, x=credit: type_area(k,x), "")
+            credit.bind('<FocusIn>', area_get_focus, "")
+            credit.bind('<FocusOut>', area_lose_focus, "")
             credit.grid(row=i+1, column=1, sticky=W, padx=padding, pady=padding)
+            credit.cur_index = 0
+            credit.cur_typing = ""
+
             amount = Entry(master, width=8, state=DISABLED)
             amount.grid(row=i+1, column=2, sticky=W, padx=padding, pady=padding)
+            amount.bind('<FocusOut>', lambda x: validate_sheet(pwd, areas))
+            amount.bind('<FocusIn>', amount_get_focus, "")
             self.rows.append((debit,credit,amount))
+
     def save(self):
-        def get_row(r):
-            debit = r[0].get()
-            credit = r[1].get() 
-            amount = r[2].get()
-
-            return (debit, credit, amount)
-
-        def valid_row(debit, credit, amount, areas):
-            return (debit in areas) and (credit in areas) and valid_type(float,amount) 
-
-        def to_csv(rows):
-            csvrows = map(get_row, self.rows)
-            csvrows = filter(lambda r: valid_row(*r, areas), csvrows)
-            csvrows = map(lambda r: ",".join(r), csvrows)
-            csvrows = "\n".join(csvrows)
-            return csvrows
-
-        csv = to_csv(self.rows)
-        file_name = cur_member_label["text"].strip()
-        print(file_name)
+        if not validate_sheet(self, areas):
+            showerror(message="Unable to save sheet! Please fix errors.")
+            return
 
         # Create folders if necessary based on week name
         if "weeks" not in get_dirs("."):
@@ -147,6 +201,9 @@ class LaborSheetForm():
         if CUR_WEEK not in get_dirs(path):
             os.mkdir(path + CUR_WEEK) 
 
+        # Write the labor sheet to file
+        csv = to_csv(self.rows)
+        file_name = cur_member_label["text"].strip()
         with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
             print(csv, file=f)
 
@@ -175,6 +232,7 @@ class MemberDialog(Dialog):
             for element in r:
                 element["state"] = ACTIVE
             r[0]["state"] = "readonly"
+            r[1]["state"] = "readonly"
         cur_member_label["width"] = 0
         cur_member_label["text"] = self.mselect.get().center(MEMBER_WIDTH)
 
