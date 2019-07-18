@@ -6,6 +6,7 @@ from collections import namedtuple
 
 import tkinter as tk
 import os
+from misc import *
 
 
 names = ["Keegan", "Adder", "Megan", "Saoirse", "Stephan", "Brittany"]
@@ -14,24 +15,10 @@ areas = ["DAIRY", "QUOTA", "GDN", "TOFU", "TOFU BOD"]
 areas.sort()
 
 MEMBER_WIDTH = 40
-CUR_WEEK = "test"
+CUR_WEEK = get_most_recent_week("weeks")
 BLACK = "#000000"
 RED = "#ff0000"
 
-def get_dirs(path):
-    dirs = []
-    with os.scandir(path) as it:
-        dirs = filter(lambda i: i.is_dir(), it)
-        dirs = map(lambda i: i.name, dirs)
-        dirs = list(dirs)
-    return dirs
-
-def valid_type(type_func, v):
-    try:
-        type_func(v)
-        return True
-    except:
-        return False
 
 def update_area_box(box, match):
     box.state(["!readonly"])
@@ -186,11 +173,14 @@ def get_next_sheet(cur_name, dirmod):
     sheet_files.sort()
 
     # Calculate next index based on dirmod
-    cur_index = sheet_files.index(cur_name + ".csv")
-    next_index = cur_index + dirmod 
-    next_index = next_index if next_index >= 0 and next_index < len(sheet_files) else cur_index
+    if cur_name == "":
+        return sheet_files[0]
+    else:
+        cur_index = sheet_files.index(cur_name + ".csv")
+        next_index = cur_index + dirmod 
+        next_index = next_index if next_index >= 0 and next_index < len(sheet_files) else cur_index
 
-    return sheet_files[next_index]
+        return sheet_files[next_index]
 
 def move_sheet(cur_name, dirmod):
     save(pwd.rows)
@@ -198,10 +188,11 @@ def move_sheet(cur_name, dirmod):
 
 def load_sheet(fname):
     path = "./weeks/" + CUR_WEEK 
-    lines = open(path + ("/%s.csv" % fname)).readlines()
+    lines = open(path + ("/%s" % fname)).readlines()
     lines = map(lambda l: l.strip().split(","), lines)
     lines = list(lines)
-    return (fname, lines)
+    member_name = fname[:-4]
+    return (member_name, lines)
 
 def initialize_form(member):
     for r in pwd.rows:
@@ -317,6 +308,7 @@ saveBtn.pack(side=LEFT)
 top_frame.pack()
 sheet_frame.pack()
 
-member, rows = load_sheet("Adder")
+first_sheet = get_next_sheet("", 0)
+member, rows = load_sheet(first_sheet)
 display_sheet(member, rows)
 root.mainloop()
