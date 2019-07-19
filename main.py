@@ -15,7 +15,7 @@ areas = ["DAIRY", "QUOTA", "GDN", "TOFU", "TOFU BOD"]
 areas.sort()
 
 MEMBER_WIDTH = 40
-CUR_WEEK = get_most_recent_week("weeks")
+cur_week = get_most_recent_week("weeks")
 BLACK = "#000000"
 RED = "#ff0000"
 
@@ -154,23 +154,27 @@ def save(rows):
         os.mkdir("weeks")
 
     path = "./weeks/"
-    if CUR_WEEK not in get_dirs(path):
-        os.mkdir(path + CUR_WEEK) 
+    if cur_week not in get_dirs(path):
+        os.mkdir(path + cur_week) 
 
     # Write the labor sheet to file
     csv = to_csv(rows)
     file_name = cur_member_label["text"].strip()
-    with open(path + CUR_WEEK + "/%s.csv" % file_name, "w") as f:
+    with open(path + cur_week + "/%s.csv" % file_name, "w") as f:
         print(csv, file=f)
 
-def get_next_sheet(cur_name, dirmod):
-    path = "./weeks/" + CUR_WEEK
-
-    # Get all sheets in current week
+def get_sheet_list(path):
+    """Get all sheets in current week"""
     sheet_files = os.listdir(path)
     sheet_files = filter(lambda f: f.endswith(".csv"), sheet_files)
     sheet_files = list(sheet_files)
     sheet_files.sort()
+    return sheet_files
+
+def get_next_sheet(cur_name, dirmod):
+    path = "./weeks/" + cur_week
+
+    sheet_files = get_sheet_list(path)
 
     # Calculate next index based on dirmod
     if cur_name == "":
@@ -184,10 +188,25 @@ def get_next_sheet(cur_name, dirmod):
 
 def move_sheet(cur_name, dirmod):
     save(pwd.rows)
-    get_next_sheet(cur_index, dirmod)
+    path = "./weeks/" + cur_week
+    sheets = get_sheet_list(path)
+    s = get_next_sheet(cur_name, dirmod)
+    name, rows = load_sheet(s)
+    display_sheet(name,rows)
+
+    if sheets.index(s) > 0:
+        prev_button["state"] = ACTIVE
+    else:
+        prev_button["state"] = DISABLED
+
+    if sheets.index(s) < (len(sheets) - 1) :
+        next_button["state"] = ACTIVE
+    else:
+        next_button["state"] = DISABLED
+
 
 def load_sheet(fname):
-    path = "./weeks/" + CUR_WEEK 
+    path = "./weeks/" + cur_week 
     lines = open(path + ("/%s" % fname)).readlines()
     lines = map(lambda l: l.strip().split(","), lines)
     lines = list(lines)
@@ -198,6 +217,9 @@ def initialize_form(member):
     for r in pwd.rows:
         for element in r:
             element["state"] = ACTIVE
+            element["state"] = "!readonly"
+            element.delete(0,100)
+
         r[0]["state"] = "readonly"
         r[1]["state"] = "readonly"
     cur_member_label["width"] = 0
@@ -290,10 +312,14 @@ root.title("Offline labor sheet entry")
 mbar = Frame(root, relief=RAISED, borderwidth=2)
 mbar.pack(fill=X)
 top_frame = Frame(root)
-Button(top_frame, text="<-", state=DISABLED).pack(side=LEFT)
+prev_button = Button(top_frame, text="<-", state=DISABLED)
+prev_button.pack(side=LEFT)
 cur_member_label = Label(top_frame, text="".center(MEMBER_WIDTH), relief=SUNKEN, justify=CENTER)
 cur_member_label.pack(side=LEFT, padx=5, pady=10)
-Button(top_frame, text="->", state=DISABLED).pack(side=LEFT)
+prev_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],-1))
+next_button = Button(top_frame, text="->", state=DISABLED)
+next_button.pack(side=LEFT)
+next_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],1))
 
 sheet_frame = Frame(root)
 pwd = LaborSheetForm(sheet_frame)
@@ -308,7 +334,9 @@ saveBtn.pack(side=LEFT)
 top_frame.pack()
 sheet_frame.pack()
 
-first_sheet = get_next_sheet("", 0)
-member, rows = load_sheet(first_sheet)
+sheets = get_sheet_list("./weeks/%s" % cur_week)
+member, rows = load_sheet(sheets[0])
 display_sheet(member, rows)
+if len(sheets) > 1:
+    next_button["state"] = ACTIVE
 root.mainloop()
