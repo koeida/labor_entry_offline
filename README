@@ -2,6 +2,12 @@ Offline labor sheet inputter
 
 TODO:
 * Get areas from labordb
+* Get members from labordb
+* Sync sheets to labordb
+* Week selection
+* New sheet dialogue: no members already in week
+* Replace left/right sheet scroller with dropdown
+
 
 DONE:
 * Save changes as you go: One file per sheet, batches of sheets are just sheets in a folder.
