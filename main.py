@@ -160,7 +160,8 @@ def save(rows):
     # Write the labor sheet to file
     csv = to_csv(rows)
     file_name = cur_member_label["text"].strip()
-    with open(path + cur_week + "/%s.csv" % file_name, "w") as f:
+    file_path = path + cur_week + "/%s.csv" % file_name
+    with open(file_path, "w") as f:
         print(csv, file=f)
 
 def get_sheet_list(path):
@@ -187,7 +188,11 @@ def get_next_sheet(cur_name, dirmod):
         return sheet_files[next_index]
 
 def move_sheet(cur_name, dirmod):
+    cur_name = cur_name.strip()
     save(pwd.rows)
+    if not validate_sheet(pwd, areas):
+        showerror(message="Invalid sheet!")
+        return None
     path = "./weeks/" + cur_week
     sheets = get_sheet_list(path)
     s = get_next_sheet(cur_name, dirmod)
@@ -208,6 +213,7 @@ def move_sheet(cur_name, dirmod):
 def load_sheet(fname):
     path = "./weeks/" + cur_week 
     lines = open(path + ("/%s" % fname)).readlines()
+    lines = filter(lambda l: l.strip() != "",lines)
     lines = map(lambda l: l.strip().split(","), lines)
     lines = list(lines)
     member_name = fname[:-4]
@@ -218,6 +224,8 @@ def initialize_form(member):
         for element in r:
             element["state"] = ACTIVE
             element["state"] = "!readonly"
+            element.cur_index = 0
+            element.cur_typing = ""
             element.delete(0,100)
 
         r[0]["state"] = "readonly"
@@ -297,13 +305,8 @@ class MemberDialog(Dialog):
 
         self.root.transient(master)
     def ok(self, master):
-        for r in pwd.rows:
-            for element in r:
-                element["state"] = ACTIVE
-            r[0]["state"] = "readonly"
-            r[1]["state"] = "readonly"
-        cur_member_label["width"] = 0
-        cur_member_label["text"] = self.mselect.get().center(MEMBER_WIDTH)
+        initialize_form(self.mselect.get().center(MEMBER_WIDTH))
+        save(pwd.rows)
 
 root = Tk()
 root.option_add('*font',("sans", 24, ""))
@@ -327,9 +330,6 @@ pwd = LaborSheetForm(sheet_frame)
 fileBtn = Button(mbar, text="New Sheet", underline=0)
 fileBtn.bind("<ButtonPress>", lambda x: MemberDialog(root))
 fileBtn.pack(side=LEFT)
-saveBtn = Button(mbar, text="Save Sheet", underline=0)
-saveBtn.bind("<ButtonPress>", lambda x: save(pwd.rows))
-saveBtn.pack(side=LEFT)
 
 top_frame.pack()
 sheet_frame.pack()
