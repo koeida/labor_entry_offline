@@ -3,16 +3,22 @@ from tkinter.commondialog import Dialog
 from tkinter.ttk import *
 from tkinter.messagebox import showerror
 from collections import namedtuple
+import json
 
 import tkinter as tk
 import os
 from misc import *
 
 
-names = ["Keegan", "Adder", "Megan", "Saoirse", "Stephan", "Brittany"]
-names.sort()
-areas = ["DAIRY", "QUOTA", "GDN", "TOFU", "TOFU BOD"]
+names = json.loads(open("sync_members.html","r").read())
+areas = json.loads(open("sync_areas.html","r").read())
+areas = names + areas
 areas.sort()
+
+#names = ["Keegan", "Adder", "Megan", "Saoirse", "Stephan", "Brittany"]
+#names.sort()
+#areas = ["DAIRY", "QUOTA", "GDN", "TOFU", "TOFU BOD"]
+#areas.sort()
 
 MEMBER_WIDTH = 40
 cur_week = get_most_recent_week("weeks")
@@ -291,7 +297,14 @@ class MemberDialog(Dialog):
 
         tf = Frame(self.root)
         Label(tf, text="Member:").pack(side=LEFT, padx=5)
-        self.mselect = Combobox(tf,state="readonly", values=names)
+    
+        path = "./weeks/" + cur_week
+        sheet_files = get_sheet_list(path)
+        cur_names = list(map(lambda f: f[:-4], sheet_files))
+        choices = filter(lambda n: n not in cur_names, names)
+        choices = list(choices)
+
+        self.mselect = Combobox(tf,state="readonly", values=choices)
         self.mselect.pack(side=LEFT, padx=5)
         self.mselect.current(0)
         tf.pack(pady=5)
@@ -335,8 +348,9 @@ top_frame.pack()
 sheet_frame.pack()
 
 sheets = get_sheet_list("./weeks/%s" % cur_week)
-member, rows = load_sheet(sheets[0])
-display_sheet(member, rows)
-if len(sheets) > 1:
-    next_button["state"] = ACTIVE
+if(len(sheets) > 0):
+    member, rows = load_sheet(sheets[0])
+    display_sheet(member, rows)
+    if len(sheets) > 1:
+        next_button["state"] = ACTIVE
 root.mainloop()
