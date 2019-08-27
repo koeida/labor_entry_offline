@@ -4,10 +4,13 @@ from tkinter.ttk import *
 from tkinter.messagebox import showerror
 from collections import namedtuple
 import json
+import datetime
+import sys
 
 import tkinter as tk
 import os
 from misc import *
+from sync import *
 
 
 names = json.loads(open("sync_members.html","r").read())
@@ -317,40 +320,58 @@ class MemberDialog(Dialog):
         bf.pack(anchor=E, pady=5, padx=5)
 
         self.root.transient(master)
+
     def ok(self, master):
         initialize_form(self.mselect.get().center(MEMBER_WIDTH))
         save(pwd.rows)
 
-root = Tk()
-root.option_add('*font',("sans", 24, ""))
-root.title("Offline labor sheet entry")
+def load_all_sheets(cur_week):
+    sheets = get_sheet_list("./weeks/%s" % cur_week)
+    sheets = map(load_sheet, sheets)
+    sheets = map(lambda s: {"member": s[0], "sheet":s[1]}, sheets)
+    sheets = list(sheets)
 
-mbar = Frame(root, relief=RAISED, borderwidth=2)
-mbar.pack(fill=X)
-top_frame = Frame(root)
-prev_button = Button(top_frame, text="<-", state=DISABLED)
-prev_button.pack(side=LEFT)
-cur_member_label = Label(top_frame, text="".center(MEMBER_WIDTH), relief=SUNKEN, justify=CENTER)
-cur_member_label.pack(side=LEFT, padx=5, pady=10)
-prev_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],-1))
-next_button = Button(top_frame, text="->", state=DISABLED)
-next_button.pack(side=LEFT)
-next_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],1))
+    #year, month, day = list(map(int,cur_week.split("_")))
+    #labor_week = datetime.date(year, month, day)
+    return {"labor_week": cur_week, "sheets": sheets}
 
-sheet_frame = Frame(root)
-pwd = LaborSheetForm(sheet_frame)
+if len(sys.argv) == 1:
+    root = Tk()
+    root.option_add('*font',("sans", 24, ""))
+    root.title("Offline labor sheet entry")
 
-fileBtn = Button(mbar, text="New Sheet", underline=0)
-fileBtn.bind("<ButtonPress>", lambda x: MemberDialog(root))
-fileBtn.pack(side=LEFT)
+    mbar = Frame(root, relief=RAISED, borderwidth=2)
+    mbar.pack(fill=X)
+    top_frame = Frame(root)
+    prev_button = Button(top_frame, text="<-", state=DISABLED)
+    prev_button.pack(side=LEFT)
+    cur_member_label = Label(top_frame, text="".center(MEMBER_WIDTH), relief=SUNKEN, justify=CENTER)
+    cur_member_label.pack(side=LEFT, padx=5, pady=10)
+    prev_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],-1))
+    next_button = Button(top_frame, text="->", state=DISABLED)
+    next_button.pack(side=LEFT)
+    next_button.bind("<ButtonPress>", lambda x: move_sheet(cur_member_label["text"],1))
 
-top_frame.pack()
-sheet_frame.pack()
+    sheet_frame = Frame(root)
+    pwd = LaborSheetForm(sheet_frame)
 
-sheets = get_sheet_list("./weeks/%s" % cur_week)
-if(len(sheets) > 0):
-    member, rows = load_sheet(sheets[0])
-    display_sheet(member, rows)
-    if len(sheets) > 1:
-        next_button["state"] = ACTIVE
-root.mainloop()
+    fileBtn = Button(mbar, text="New Sheet", underline=0)
+    fileBtn.bind("<ButtonPress>", lambda x: MemberDialog(root))
+    fileBtn.pack(side=LEFT)
+
+    syncBtn = Button(mbar, text="Sync to LaborDB", underline=0)
+    syncBtn.bind("<ButtonPress>", lambda x: sync_sheets(load_all_sheets(cur_week)))
+    syncBtn.pack(side=LEFT)
+
+    top_frame.pack()
+    sheet_frame.pack()
+
+    sheets = get_sheet_list("./weeks/%s" % cur_week)
+    if(len(sheets) > 0):
+        member, rows = load_sheet(sheets[0])
+        display_sheet(member, rows)
+        if len(sheets) > 1:
+            next_button["state"] = ACTIVE
+    root.mainloop()
+elif sys.argv[1] == "sync":
+    sync_sheets(load_all_sheets(cur_week))
